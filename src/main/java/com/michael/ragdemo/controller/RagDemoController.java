@@ -2,6 +2,9 @@ package com.michael.ragdemo.controller;
 
 import com.michael.ragdemo.dto.DocumentRequest;
 import com.michael.ragdemo.dto.DocumentSearchResult;
+import com.michael.ragdemo.dto.ProductDetails;
+import com.michael.ragdemo.entity.Product;
+import com.michael.ragdemo.service.ProductService;
 import com.michael.ragdemo.service.ProductTools;
 import com.michael.ragdemo.utils.DocumentUtils;
 import lombok.AllArgsConstructor;
@@ -19,6 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
@@ -29,6 +33,7 @@ public class RagDemoController {
     private final VectorStore vectorStore;
     private final ChatClient chatClient;
     private final ProductTools productTools;
+    private final ProductService productService;
 
     @GetMapping("/chatWithRag")
     public String chatWithRag(@RequestParam(value = "message") String message) {
@@ -63,6 +68,11 @@ public class RagDemoController {
         } catch (Exception e) {
             return e.getMessage();
         }
+    }
+
+    @GetMapping("/search-product")
+    public ProductDetails searchProduct(@RequestParam("name") String name) {
+        return productTools.findClosestProduct(name);
     }
 
     @GetMapping("/search-document")
@@ -118,6 +128,20 @@ public class RagDemoController {
 
         return ResponseEntity.ok("Successfully embedded and stored " +
                 documents.size() + " chunks");
+    }
+
+    @PostMapping("/add-products-to-vector-store")
+    public ResponseEntity<String> addProductsToVectorStore() {
+        List<Product> products = productService.findAllProducts();
+
+        List<Document> documents = products.stream()
+                .map(p -> new Document(p.getName(), Map.of("productId", p.getId())))
+                .toList();
+
+        vectorStore.add(documents);
+
+        return ResponseEntity.ok("Successfully embedded and stored " +
+                documents.size() + " products");
     }
 
     @PostMapping("/add-default-documents")
