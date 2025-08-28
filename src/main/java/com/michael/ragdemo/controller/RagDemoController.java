@@ -78,15 +78,22 @@ public class RagDemoController {
     @GetMapping("/ask-product-question")
     public String askProductQuestion(@RequestParam("name") String name,
                                      @RequestParam("question") String question) {
-        ProductDetails product = productTools.findClosestProduct(name);
-        String prompt = "Product Info:\n" +
-                "Name: " + product.name() + "\n" +
-                "Price: " + product.price() + "\n" +
-                "Quantity: " + product.quantity() + "\n\n" +
-                question;
+        List<ProductDetails> products = productTools.findClosestProducts(name, 20);
+
+        StringBuilder promptBuilder = new StringBuilder("Product Info:\n");
+        for (ProductDetails product : products) {
+            promptBuilder.append("Name: ")
+                    .append(product.name())
+                    .append(", Price: ")
+                    .append(product.price())
+                    .append(", Quantity: ")
+                    .append(product.quantity())
+                    .append("\n");
+        }
+        promptBuilder.append("\n").append(question);
 
         return chatClient.prompt()
-                .user(prompt)
+                .user(promptBuilder.toString())
                 .call()
                 .content();
     }
