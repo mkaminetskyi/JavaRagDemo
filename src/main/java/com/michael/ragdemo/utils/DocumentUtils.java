@@ -1,4 +1,4 @@
-package com.michael.semanticsearchdemo.utils;
+package com.michael.ragdemo.utils;
 
 import lombok.experimental.UtilityClass;
 import org.apache.commons.csv.CSVFormat;

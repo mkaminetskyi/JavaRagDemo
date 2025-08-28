@@ -17,12 +17,11 @@ spring:
         initialize-schema: true
         dimensions: 768
         index-type: hnsw
-
   datasource:
-    url: jdbc:postgresql://localhost:5432/vector_db
-    username: postgres
-    password: postgres
-    driver-class-name: org.postgresql.Driver
+      url: jdbc:postgresql://localhost:5432/vector_db
+      username: postgres
+      password: postgres
+      driver-class-name: org.postgresql.Driver
 
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect

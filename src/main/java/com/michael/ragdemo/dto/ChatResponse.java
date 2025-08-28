@@ -1,4 +1,4 @@
-package com.michael.semanticsearchdemo.dto;
+package com.michael.ragdemo.dto;
 
 import java.util.List;
 

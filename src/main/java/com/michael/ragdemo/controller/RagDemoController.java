@@ -1,11 +1,13 @@
-package com.michael.semanticsearchdemo.controller;
+package com.michael.ragdemo.controller;
 
-import com.michael.semanticsearchdemo.dto.DocumentRequest;
-import com.michael.semanticsearchdemo.dto.DocumentSearchResult;
-import com.michael.semanticsearchdemo.utils.DocumentUtils;
+import com.michael.ragdemo.dto.DocumentRequest;
+import com.michael.ragdemo.dto.DocumentSearchResult;
+import com.michael.ragdemo.service.ProductTools;
+import com.michael.ragdemo.utils.DocumentUtils;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.QuestionAnswerAdvisor;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
@@ -22,33 +24,49 @@ import java.util.Optional;
 @Slf4j
 @RestController
 @AllArgsConstructor
-public class SemanticSearchController {
+public class RagDemoController {
     private final JdbcTemplate jdbcTemplate;
     private final VectorStore vectorStore;
     private final ChatClient chatClient;
+    private final ProductTools productTools;
+
+    @GetMapping("/chatWithRag")
+    public String chatWithRag(@RequestParam(value = "message") String message) {
+        try {
+            QuestionAnswerAdvisor qaAdvisor = QuestionAnswerAdvisor.builder(vectorStore)
+                    .searchRequest(
+                            SearchRequest.builder()
+                                   // .similarityThreshold(0.8d)
+                                    .topK(1)
+                                    .build()
+                    )
+                    .build();
+
+            return chatClient.prompt()
+                    .advisors(qaAdvisor)
+                    .user(message)
+                    .call()
+                    .content();
+        } catch (Exception e) {
+            return e.getMessage();
+        }
+    }
+
+    @GetMapping("/chatWithRagAndTool")
+    public String chatWithRagAndToolCalling(@RequestParam(value = "message") String message) {
+        try {
+            return chatClient.prompt()
+                    .tools(productTools)
+                    .user(message)
+                    .call()
+                    .content();
+        } catch (Exception e) {
+            return e.getMessage();
+        }
+    }
 
     @GetMapping("/search-document")
     public List<DocumentSearchResult> searchDocument(@RequestBody DocumentRequest request) {
-        log.info("Searching for similar documents to: {}", request);
-
-        List<Document> similarDocuments = vectorStore.similaritySearch(SearchRequest.builder()
-                .query(request.content())
-                .topK(3)
-                .build());
-
-        return Optional.ofNullable(similarDocuments)
-                .orElse(List.of())
-                .stream()
-                .map(doc -> new
-                        DocumentSearchResult(doc.getText(),
-                        doc.getScore()))
-                .toList();
-    }
-
-    @GetMapping("/asl-question")
-    public List<DocumentSearchResult> askQuestion(@RequestBody DocumentRequest request) {
-        log.info("Searching for similar documents to: {}", request);
-
         List<Document> similarDocuments = vectorStore.similaritySearch(SearchRequest.builder()
                 .query(request.content())
                 .topK(3)
@@ -90,7 +108,7 @@ public class SemanticSearchController {
     public ResponseEntity<String> uploadTextFile(@RequestParam("file") MultipartFile file)
             throws IOException {
         String content = new String(file.getBytes(), StandardCharsets.UTF_8);
-        List<String> chunks = DocumentUtils.splitIntoChunks(content, 256);
+        List<String> chunks = DocumentUtils.splitIntoChunks(content, 40);
 
         List<Document> documents = chunks.stream()
                 .map(Document::new)
