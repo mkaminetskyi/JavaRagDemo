@@ -11,6 +11,7 @@ import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @Component
@@ -50,5 +51,27 @@ public class ProductTools {
         }
 
         return new ProductDetails(0, "Not Found", 0, 0);
+    }
+
+    @Tool(description = "Find top K products by closest name")
+    public List<ProductDetails> findClosestProducts(String productName, int topK) {
+        log.info("Search products by similar name: {}, topK: {}", productName, topK);
+
+        List<Document> documents = vectorStore.similaritySearch(
+                SearchRequest.builder().query(productName).topK(topK).build());
+
+        return documents.stream()
+                .map(doc -> {
+                    Number idNum = (Number) doc.getMetadata().get("productId");
+                    if (idNum != null) {
+                        Product product = productService.findProductById(idNum.intValue());
+                        if (product != null) {
+                            return new ProductDetails(product.getId(), product.getName(), product.getPrice(), product.getQuantity());
+                        }
+                    }
+                    return null;
+                })
+                .filter(Objects::nonNull)
+                .toList();
     }
 }

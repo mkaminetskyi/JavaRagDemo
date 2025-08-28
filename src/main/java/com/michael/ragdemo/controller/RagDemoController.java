@@ -71,8 +71,24 @@ public class RagDemoController {
     }
 
     @GetMapping("/search-product")
-    public ProductDetails searchProduct(@RequestParam("name") String name) {
-        return productTools.findClosestProduct(name);
+    public List<ProductDetails> searchProduct(@RequestParam("name") String name) {
+        return productTools.findClosestProducts(name, 10);
+    }
+
+    @GetMapping("/ask-product-question")
+    public String askProductQuestion(@RequestParam("name") String name,
+                                     @RequestParam("question") String question) {
+        ProductDetails product = productTools.findClosestProduct(name);
+        String prompt = "Product Info:\n" +
+                "Name: " + product.name() + "\n" +
+                "Price: " + product.price() + "\n" +
+                "Quantity: " + product.quantity() + "\n\n" +
+                question;
+
+        return chatClient.prompt()
+                .user(prompt)
+                .call()
+                .content();
     }
 
     @GetMapping("/search-document")
